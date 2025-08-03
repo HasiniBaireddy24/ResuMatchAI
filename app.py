@@ -234,7 +234,7 @@ if st.session_state.user_role is None:
             st.rerun()
 
 else: # --- Stage 2: Main Application Features (after role selection) ---
-    st.title("📄 AI Resume Screener")
+    st.title("📄 ResuMatchAI")
     st.markdown("---") 
     
     # --- Back button for role selection ---
