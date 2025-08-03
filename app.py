@@ -2,19 +2,15 @@ import streamlit as st
 import os
 import io
 import pandas as pd
-# Import spacy.cli for programmatically downloading the model
 import spacy.cli
-from skill_aliases import skill_aliases # Assuming this file exists in your project
+from skill_aliases import skill_aliases 
 import openai
 import google.generativeai as genai
 
-# For handling BytesIO objects from uploaded files
-# Ensure these helper functions are in your project directory
-from resume_parser import extract_text_from_pdf # Assuming this file exists in your project
-# Corrected import: ensure normalize_skill is imported or the module is imported directly
-from data_extractor import extract_email, extract_phone, extract_name, extract_skills, normalize_skill # Assuming this file exists in your project
-from job_parser import extract_skills_from_jd # Assuming this file exists in your project
-from matcher import calculate_match_score # Assuming this file exists in your project
+from resume_parser import extract_text_from_pdf 
+from data_extractor import extract_email, extract_phone, extract_name, extract_skills, normalize_skill 
+from job_parser import extract_skills_from_jd 
+from matcher import calculate_match_score 
 
 # -------------------- SpaCy Model Download Function --------------------
 def download_spacy_model():
@@ -34,7 +30,6 @@ def download_spacy_model():
             st.error(f"Error downloading spaCy model: {e}")
             st.warning("The app may not function correctly without the spaCy model. Please try again.")
 
-# Call the function at the start of the script before importing `job_parser`
 download_spacy_model()
 
 # 🔐 Set your API Keys
@@ -51,9 +46,7 @@ if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
 
 
-# -------------------- Cached Function Wrappers --------------------
-# We create new functions here to wrap the expensive operations from
-# other modules and apply caching. This avoids modifying the original files.
+
 
 @st.cache_data
 def cached_extract_text_from_pdf(file_path):
@@ -82,7 +75,6 @@ def get_llm_suggestions(resume_text, job_description, llm_choice, openai_api_key
         system_prompt = "You are a professional resume coach who helps candidates improve their resumes based on job descriptions."
         user_prompt = f"Resume:\n{resume_text}\n\nJob Description:\n{job_description}\n\nPlease provide improvement suggestions for the resume, based on the job description. Highlight any missing areas and recommend what to add."
 
-        # Set a unified token limit for both models
         token_limit = 3072
 
         if llm_choice == "OpenAI (GPT-4o-mini)":
@@ -115,7 +107,7 @@ def get_llm_suggestions(resume_text, job_description, llm_choice, openai_api_key
                 system_prompt + "\n\n" + user_prompt,
                 generation_config=genai.types.GenerationConfig(
                     temperature=0.7,
-                    max_output_tokens=token_limit # Set to the unified token limit
+                    max_output_tokens=token_limit 
                 )
             )
             return response.text.strip()
@@ -137,7 +129,7 @@ st.set_page_config(
     }
 )
 
-# Custom CSS
+# CSS
 st.markdown("""
     <style>
         /* General page background */
@@ -243,24 +235,21 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state for user_role if it doesn't exist
 if 'user_role' not in st.session_state:
     st.session_state.user_role = None
 if 'analyze_button_clicked' not in st.session_state:
     st.session_state.analyze_button_clicked = False
-if 'job_description_text' not in st.session_state: # New: for JD persistence
+if 'job_description_text' not in st.session_state: 
     st.session_state.job_description_text = ""
-# Initialize session state for LLM choice for persistence
-if 'llm_model_choice' not in st.session_state:
-    st.session_state.llm_model_choice = "OpenAI (GPT-4o-mini)" # Default choice
 
-# NEW: Initialize session state for API keys for persistence
+if 'llm_model_choice' not in st.session_state:
+    st.session_state.llm_model_choice = "OpenAI (GPT-4o-mini)" 
+
 if 'openai_api_key_input_val' not in st.session_state:
     st.session_state.openai_api_key_input_val = ""
 if 'google_api_key_input_val' not in st.session_state:
     st.session_state.google_api_key_input_val = ""
 
-# NEW: Initialize session state for uploaded resume persistence
 if 'uploaded_resume_single_file' not in st.session_state:
     st.session_state.uploaded_resume_single_file = None
 if 'uploaded_resumes_multiple_files' not in st.session_state:
@@ -274,131 +263,117 @@ if st.session_state.user_role is None:
     st.markdown("---")
     st.subheader("👋 Welcome! Please select your role:")
     
-    # Using st.columns for better button layout
+   
     col_seeker, col_recruiter = st.columns(2)
 
     with col_seeker:
         if st.button("I'm a Job Seeker / Student", key="btn_job_seeker"):
             st.session_state.user_role = "Job Seeker / Student"
-            st.rerun() # Rerun to display the next stage
+            st.rerun() 
 
     with col_recruiter:
         if st.button("I'm a Recruiter / Hiring Manager", key="btn_recruiter"):
             st.session_state.user_role = "Recruiter / Hiring Manager"
-            st.rerun() # Rerun to display the next stage
+            st.rerun()
 
-else: # --- Stage 2: Main Application Features (after role selection) ---
+else: 
     st.title("📄 AI Resume Screener")
-    st.markdown("---") # Horizontal line for separation
+    st.markdown("---") 
     
     # --- Back button for role selection ---
     if st.button("⬅️ Back to Role Selection", key="back_to_role_selection"):
-        st.session_state.user_role = None # Reset the user role
-        st.session_state.analyze_button_clicked = False # Also reset analyze button state for clean start
-        st.session_state.job_description_text = "" # Reset JD as well
-        st.session_state.llm_model_choice = "OpenAI (GPT-4o-mini)" # Reset LLM choice on role change
-        # Also reset API key inputs when going back
+        st.session_state.user_role = None 
+        st.session_state.analyze_button_clicked = False 
+        st.session_state.job_description_text = "" 
+        st.session_state.llm_model_choice = "OpenAI (GPT-4o-mini)" 
+        
         st.session_state.openai_api_key_input_val = ""
         st.session_state.google_api_key_input_val = ""
-        # NEW: Reset uploaded resume session states
+       
         st.session_state.uploaded_resume_single_file = None
         st.session_state.uploaded_resumes_multiple_files = []
-        st.rerun() # Force a rerun to show the role selection page
+        st.rerun() 
     
     st.caption(f"You selected: **{st.session_state.user_role}**")
-    st.markdown("---") # Another separator after the back button
+    st.markdown("---") 
 
     # --- Input Section ---
     st.header("Upload Resume(s) & Job Description")
     st.markdown("Upload your resume(s) (PDF only) and paste the job description below.")
 
-    # Conditional file uploader based on role, with session state persistence
     uploaded_resumes_for_processing = []
 
     if st.session_state.user_role == "Job Seeker / Student":
-        # The key ensures Streamlit remembers the file if it's re-rendered
+      
         uploaded_resume_single = st.file_uploader(
             "Upload your resume (PDF)",
             type=["pdf"],
             key="resume_uploader_single" 
         )
-        # Store in session state
+       
         if uploaded_resume_single:
             st.session_state.uploaded_resume_single_file = uploaded_resume_single
-        # If the user clears the uploader, set session state to None
         elif 'resume_uploader_single' in st.session_state and st.session_state['resume_uploader_single'] is None:
             st.session_state.uploaded_resume_single_file = None
 
-        # Use the session state variable for processing
         uploaded_resumes_for_processing = [st.session_state.uploaded_resume_single_file] if st.session_state.uploaded_resume_single_file else []
 
-    else: # Recruiter / Hiring Manager
-        # The key ensures Streamlit remembers the files if re-rendered
+    else: 
         uploaded_resumes_multiple = st.file_uploader(
             "Upload resumes (PDFs)",
             type=["pdf"],
             accept_multiple_files=True,
             key="resume_uploader_multiple"
         )
-        # Store in session state
+        
         if uploaded_resumes_multiple:
             st.session_state.uploaded_resumes_multiple_files = uploaded_resumes_multiple
-        # If the user clears the uploader, set session state to empty list
+        
         elif 'resume_uploader_multiple' in st.session_state and not st.session_state['resume_uploader_multiple']:
              st.session_state.uploaded_resumes_multiple_files = []
 
-        # Use the session state variable for processing
         uploaded_resumes_for_processing = st.session_state.uploaded_resumes_multiple_files
 
 
-    # Job Description Text Area (now uses session state for persistence)
+    # Job Description Text Area 
     job_description = st.text_area(
         "Paste the Job Description here",
-        value=st.session_state.job_description_text, # Set value from session state
+        value=st.session_state.job_description_text,
         height=250,
         key="jd_input",
         placeholder="e.g., 'We are looking for a Data Scientist with strong Python, SQL, and Machine Learning skills...'"
     )
-    # Update session state when the text area changes
     st.session_state.job_description_text = job_description
 
 
-    # --- Conditional LLM Configuration (Only for Job Seekers/Students) ---
     openai_api_key_input = None
     google_api_key_input = None
-    # llm_choice will be set by the st.radio widget
-
     if st.session_state.user_role == "Job Seeker / Student":
         st.markdown("---")
         
-        # NEW: Wrap the LLM configuration in an expander
         with st.expander("🔧 AI Suggestions Configuration (Optional)", expanded=False):
-            # LLM Model Selection (FIXED FOR PERSISTENCE)
             llm_choice_options = ("OpenAI (GPT-4o-mini)", "Google (Gemini-Pro)")
             try:
-                # Ensure the index is valid for the current options
                 current_index = llm_choice_options.index(st.session_state.llm_model_choice)
             except ValueError:
-                # Fallback if the stored choice is no longer valid (e.g., options changed)
                 current_index = 0 
                 st.session_state.llm_model_choice = llm_choice_options[0]
 
             llm_choice = st.radio(
                 "Choose your AI model for suggestions:",
                 llm_choice_options,
-                index=current_index, # Set initial value from session state
-                key="llm_model_choice" # This key manages st.session_state.llm_model_choice automatically
+                index=current_index, 
+                key="llm_model_choice" 
             )
 
             if llm_choice == "OpenAI (GPT-4o-mini)":
                 if not OPENAI_API_KEY:
-                    # Use session state for value and on_change callback
                     openai_api_key_input = st.text_input(
                         "Enter your OpenAI API Key (for GPT suggestions)",
                         type="password",
                         key="openai_api_key_input",
-                        value=st.session_state.openai_api_key_input_val, # Set value from session state
-                        on_change=lambda: st.session_state.update(openai_api_key_input_val=st.session_state.openai_api_key_input) # Update session state on change
+                        value=st.session_state.openai_api_key_input_val,
+                        on_change=lambda: st.session_state.update(openai_api_key_input_val=st.session_state.openai_api_key_input) 
                     )
                     if not openai_api_key_input:
                         st.info("You can get an OpenAI API key from [platform.openai.com/account/api-keys](https://platform.openai.com/account/api-keys). This key is not stored.")
@@ -406,13 +381,12 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                     st.success("OpenAI API Key is set (via environment variable).")
             elif llm_choice == "Google (Gemini-Pro)":
                 if not GOOGLE_API_KEY:
-                    # Use session state for value and on_change callback
                     google_api_key_input = st.text_input(
                         "Enter your Google API Key (for Gemini suggestions)",
                         type="password",
                         key="google_api_key_input",
-                        value=st.session_state.google_api_key_input_val, # Set value from session state
-                        on_change=lambda: st.session_state.update(google_api_key_input_val=st.session_state.google_api_key_input) # Update session state on change
+                        value=st.session_state.google_api_key_input_val, 
+                        on_change=lambda: st.session_state.update(google_api_key_input_val=st.session_state.google_api_key_input) 
                     )
                     if not google_api_key_input:
                         st.info("You can get a Google API key from [makersuite.google.com/build/api-key](https://makersuite.google.com/build/api-key). This key is not stored.")
@@ -420,7 +394,6 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                     st.success("Google API Key is set (via environment variable).")
 
 
-    # Change button text based on role
     analyze_button_label = "Analyze Resume" if st.session_state.user_role == "Job Seeker / Student" else "Analyze Resumes"
     if st.button(analyze_button_label, key="analyze_button_click"):
         st.session_state.analyze_button_clicked = True
@@ -429,51 +402,45 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
     # --- Processing and Results Section ---
     if st.session_state.analyze_button_clicked and uploaded_resumes_for_processing and job_description:
         
-        resumes_data = [] # Initialize list to store data for all resumes
-
-        # Use the cached function for JD skills extraction once
+        resumes_data = [] 
         jd_skill_set_raw = cached_extract_skills_from_jd(job_description)
         jd_skill_set_normalized = {normalize_skill(s) for s in jd_skill_set_raw}
         
-        # Add an overall spinner for the entire batch processing
+        
         with st.spinner("Processing all resumes... This may take a moment."):
-            # Loop through each uploaded resume
+            
             for i, uploaded_resume in enumerate(uploaded_resumes_for_processing):
-                temp_resume_path = f"temp_resume_{uploaded_resume.name}.pdf" # Unique temp file for each resume
+                temp_resume_path = f"temp_resume_{uploaded_resume.name}.pdf" 
                 
-                # Added visible progress message outside the expander
+                
                 st.markdown(f"**Currently processing:** {uploaded_resume.name} ({i+1}/{len(uploaded_resumes_for_processing)})") 
 
-                # Use an expander for each resume's results for better organization
-                # Expand the first resume by default, others collapsed for recruiters if multiple
+               
                 expanded_state = True if (len(uploaded_resumes_for_processing) == 1) or (i == 0 and st.session_state.user_role == "Recruiter / Hiring Manager") else False
                 with st.expander(f"📊 Results for {uploaded_resume.name} (Resume {i+1})", expanded=expanded_state):
                     try:
-                        with st.spinner(f"🔍 Analyzing {uploaded_resume.name} details..."): # Inner spinner for detailed resume analysis
+                        with st.spinner(f"🔍 Analyzing {uploaded_resume.name} details..."): 
                             with open(temp_resume_path, "wb") as f:
                                 f.write(uploaded_resume.read())
 
-                            # Use the cached function for text extraction
+                            
                             resume_text = cached_extract_text_from_pdf(temp_resume_path)
                             
                             name = extract_name(resume_text)
                             email = extract_email(resume_text)
                             phone = extract_phone(resume_text)
 
-                            # Extract and normalize resume skills (not cached here as it depends on resume text)
                             resume_skills_raw = extract_skills(resume_text, skill_aliases)
                             resume_skills_normalized = {normalize_skill(s) for s in resume_skills_raw}
 
-                            # Use the cached function for score calculation
                             match_score, matched_skills, missing_skills = cached_calculate_match_score(resume_skills_normalized, jd_skill_set_normalized)
 
-                        # Store data for overall comparison later (NEWLY ADDED)
                         resumes_data.append({
                             "name": name if name else uploaded_resume.name.replace(".pdf", ""),
                             "email": email,
                             "phone": phone,
-                            "extracted_skills": resume_skills_normalized, # Use raw extracted skills
-                            "match_score_value": match_score, # Store raw score for sorting/calculations
+                            "extracted_skills": resume_skills_normalized, 
+                            "match_score_value": match_score, 
                             "match_score_display": f"{match_score:.2f}%",
                             "matched_jd_skills": matched_skills, 
                             "missing_jd_skills": missing_skills 
@@ -481,14 +448,14 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                             
                         st.success(f"✅ Analysis Complete for {uploaded_resume.name}!")
 
-                        # --- Resume Summary Section (Now 1) ---
+                        # --- Resume Summary Section ---
                         st.markdown("---")
                         st.header("1️⃣ Resume Summary")
                         st.write(f"**Candidate Name:** {name if name else 'Not Found 🤷'}")
                         st.write(f"**Email Address:** {email if email else 'Not Found 📧'}")
                         st.write(f"**Phone Number:** {phone if phone else 'Not Found 📞'}")
 
-                        # --- Match Score & Skills Section (Now 2) ---
+                        # --- Match Score & Skills Section ---
                         st.markdown("---")
                         st.header("2️⃣ Resume vs Job Match")
 
@@ -517,16 +484,14 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                             else:
                                 st.success("Great! Your resume appears to cover all key skills mentioned in the job description.")
 
-                        # --- Smart Suggestions Section (Now 3) ---
-                        # This entire section should ONLY be shown if the user is a Job Seeker / Student
+                        # --- Smart Suggestions Section ---
                         if st.session_state.user_role == "Job Seeker / Student":
                             st.markdown("---")
                             st.header("3️⃣ Smart Suggestions")
                             
                             if missing_skills:
-                                # Check if an API key is provided for the chosen LLM
                                 can_get_llm_suggestions = False
-                                # Use the session state values for dynamic API keys
+                                
                                 if st.session_state.llm_model_choice == "OpenAI (GPT-4o-mini)" and (OPENAI_API_KEY or st.session_state.openai_api_key_input_val):
                                     can_get_llm_suggestions = True
                                 elif st.session_state.llm_model_choice == "Google (Gemini-Pro)" and (GOOGLE_API_KEY or st.session_state.google_api_key_input_val):
@@ -534,8 +499,7 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                                 
                                 if can_get_llm_suggestions:
                                     st.subheader(f"🤖 {st.session_state.llm_model_choice}-Powered Suggestions")
-                                    with st.spinner("💡 Asking your AI resume coach..."):
-                                        # Use the cached function for LLM calls
+                                    with st.spinner("💡 Asking your AI resume coach...")
                                         llm_feedback = get_llm_suggestions(
                                             resume_text, 
                                             job_description, 
@@ -546,7 +510,6 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                                         st.markdown(llm_feedback)
                                 else:
                                     st.info(f"💡 To get {st.session_state.llm_model_choice}-powered suggestions, please provide your API key in the 'Configuration for AI Suggestions' section above.")
-                                    # Fallback to standard suggestions if no API key is provided for the chosen LLM
                                     st.markdown("💡 Based on the missing skills, here's how you can enhance your resume:")
                                     ignore_terms = {
                                         'we', 'create', 'understanding', 'our team', 'a strong interest', 'reports',
@@ -586,7 +549,7 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
 
                                     cleaned_suggestions = []
                                     for skill in missing_skills:
-                                        # Ensure skill is a string before splitting, also handle cases where skill might be a list of one word
+                                        
                                         if isinstance(skill, list):
                                             skill_str = " ".join(skill)
                                         else:
@@ -643,19 +606,19 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                                         st.markdown("</div>", unsafe_allow_html=True)
                                     else:
                                         st.success("✅ Your resume appears to cover all key skills from the job description! Well done!")
-                            else: # No missing skills, so perfect match
+                            else: 
                                 st.success("🎉 Excellent! Your resume fully matches all job requirements. You're good to go!")
-                        # Removed the else block here, so the section simply doesn't appear for Recruiters.
+                        
 
                     except Exception as e:
                         st.error(f"An error occurred during analysis of {uploaded_resume.name}: {e}. Please try again or check the format of this resume.")
                         st.warning("Ensure your PDF resume is text-searchable (not just an image).")
                     finally:
-                        # Clean up the temporary PDF file for THIS resume
+                        
                         if os.path.exists(temp_resume_path):
                             os.remove(temp_resume_path)
 
-        # --- Recruiter Dashboard: Comparative Analysis (Corrected Indentation) ---
+        # --- Recruiter Dashboard: Comparative Analysis ---
         if st.session_state.user_role == "Recruiter / Hiring Manager" and resumes_data:
             st.markdown("---")
             st.header("3️⃣ Recruiter Dashboard: Comparative Analysis") # Numbered 3 for recruiters now
@@ -681,16 +644,14 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
             else:
                 st.info("No resume data to display in the comparison table.")
 
-            # Cross-Candidate Insights (e.g., common skills)
             st.subheader("Cross-Candidate Insights")
-            if len(resumes_data) > 0: # Ensure there's at least one resume
+            if len(resumes_data) > 0:
                 
-                # Intersect with skills from subsequent resumes
                 common_normalized_skills_across_resumes = set.intersection(
                     *[resume['extracted_skills'] for resume in resumes_data]
                 )
 
-                # Now, intersect this set with the job description skills
+                
                 common_jd_skills_across_all = jd_skill_set_normalized.intersection(common_normalized_skills_across_resumes)
 
                 if common_jd_skills_across_all:
@@ -699,9 +660,7 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                 else:
                     st.info("No common job description skills found across all uploaded resumes.")
                 
-            else: # This block handles the case where no resumes were uploaded for the insight section.
+            else: 
                 st.info("Upload more than one resume to see cross-candidate insights.")
 
-    # Instructions if inputs are missing initially or after an error in stage 2
-    # This block now handles cases where analyze button was clicked but inputs are missing
     elif st.session_s
