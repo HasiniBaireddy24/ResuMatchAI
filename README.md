@@ -5,6 +5,7 @@ PROJECT OVERVIEW
 ResuMatchAI is a Streamlit-based web application designed to help job seekers and recruiters optimize the resume-to-job-description matching process. By leveraging natural language processing (NLP) and large language models (LLMs), the tool provides a comprehensive analysis of a candidate's resume against a specific job description, offering insights, a match score, and AI-powered suggestions for improvement.
 
 KEY FEATURES
+
 Resume-to-JD Matching: Analyzes skills extracted from a resume and a job description to calculate a percentage match score.
 
 Skill Gap Analysis: Identifies skills listed in the job description that are missing from the candidate's resume.
