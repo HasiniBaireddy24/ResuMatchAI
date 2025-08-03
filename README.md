@@ -1,63 +1,62 @@
 ResuMatchAI
+Project Overview
+ResuMatchAI is a Streamlit-based web application designed to help job seekers and recruiters optimize the resume-to-job-description matching process. By leveraging natural language processing (NLP) and large language models (LLMs), the tool provides a comprehensive analysis of a candidate's resume against a specific job description, offering insights, a match score, and AI-powered suggestions for improvement.
 
-Project Overview:
+Key Features
+Resume-to-JD Matching: Analyzes skills extracted from a resume and a job description to calculate a percentage match score.
 
-ResuMatchAI is a Streamlit-based web application designed to help job seekers and recruiters optimize the resume-to-job-description matching process. By leveraging natural language processing(NLP) and large language models(LLMs), the tool provides a comprehensive analysis of a candidate's resume against a specific job description, offering insights, a match score, and AI-powered suggestions for improvement.
+Skill Gap Analysis: Identifies skills listed in the job description that are missing from the candidate's resume.
 
-Key Features:
+AI-Powered Suggestions: Provides actionable, LLM-generated recommendations on how to add or rephrase experience to cover missing skills.
 
-Resume-to-JD Matching : Analyzes skills extracted from a resume and a job description to calculate a percentage match score.
+Multi-Resume Support: Recruiters can upload multiple resumes to compare candidates and identify common skills across all participants.
 
-Skill Gap Analysis : Identifies skills listed in the job description that are missing from the candidate's resume.
+Comprehensive Skill Taxonomy: Uses a robust, customizable dictionary of skill aliases to ensure accurate and consistent skill extraction.
 
-AI-Powered Suggestions : Provides actionable, LLM-generated recommendations on how to add or rephrase experience to cover missing skills.
-
-Multi-Resume Support : Recruiters can upload multiple resumes to compare candidates and identify common skills across all participants.
-
-Comprehensive Skill Taxonomy : Uses a robust, customizable dictionary of skill aliases to ensure accurate and consistent skill extraction.
-
-Prerequisites:
-
+Prerequisites
 Before you begin, ensure you have Python 3.7 or newer installed.
 
-Installation:
-1. Clone the repository:
+Installation
+Clone the repository:
+
 git clone <your-repository-url>
 cd <your-repository-name>
 
-2. Create and activate a virtual environment(recommended):
+Create and activate a virtual environment (recommended):
+
 Using venv:
+
 python -m venv venv
-source venv/bin/activate  #On Windows, use 'venv\Scripts\activate'
+source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
 
 Using Conda:
-conda create -n resume-matcher python=3.9
 
+conda create -n resume-matcher python=3.9
 conda activate resume-matcher
 
-3. Install the required packages:
+Install the required packages:
+
 pip install -r requirements.txt
 
-4. Download the necessary spaCy language model:
+Download the necessary spaCy language model:
+
 python -m spacy download en_core_web_sm
 
-API Keys:
-This application requires  API keys for the large language models. You will need to set them as environment variables:
+API Keys
+This application requires API keys for the large language models. You will need to set them as environment variables:
 
 Google Gemini:
 
 export GOOGLE_API_KEY="YOUR_GEMINI_API_KEY"
 
-
 OpenAI:
 
 export OPENAI_API_KEY="YOUR_OPENAI_API_KEY"
 
-Usage:
+Usage
 To run the application, simply execute the following command from the project's root directory after activating your environment:
 
 streamlit run app.py
-
 
 This will start a local web server, and the application will open automatically in your browser.
 
