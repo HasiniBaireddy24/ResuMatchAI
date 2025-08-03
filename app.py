@@ -80,7 +80,7 @@ def get_llm_suggestions(resume_text, job_description, llm_choice, openai_api_key
 # --- Streamlit App Layout ---
 
 st.set_page_config(
-    page_title="AI Resume Screener",
+    page_title="ResuMatchAI",
     layout="centered",
     initial_sidebar_state="auto",
     menu_items={
@@ -430,7 +430,7 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                             st.header("3️⃣ Smart Suggestions")
                             
                             if missing_skills:
-                                can_get_llm_suggestions = False-
+                                can_get_llm_suggestions = False
                                 if st.session_state.llm_model_choice == "OpenAI (GPT4o-mini)" and (OPENAI_API_KEY or st.session_state.openai_api_key_input_val):
                                     can_get_llm_suggestions = True
                                 elif st.session_state.llm_model_choice == "Google (Gemini-Pro)" and (GOOGLE_API_KEY or st.session_state.google_api_key_input_val):
