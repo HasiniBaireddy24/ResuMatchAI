@@ -50,5 +50,4 @@ skill_aliases = {
     "bi": "Business Intelligence",
     "computer vision": "Computer Vision",
     "deep learning": "Deep Learning",
-    # Add more aliases as you encounter them
 }
