@@ -216,7 +216,7 @@ if 'uploaded_resumes_multiple_files' not in st.session_state:
 
 # --- Stage 1: Role Selection ---
 if st.session_state.user_role is None:
-    st.title("📄 AI Resume Screener")
+    st.title("📄 ResuMatchAI")
     st.markdown("Match your resume with any job description and get smart, actionable insights! ✨")
     st.markdown("---")
     st.subheader("👋 Welcome! Please select your role:")
