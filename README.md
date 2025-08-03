@@ -1,93 +1,85 @@
-ResuMatchAI
+#  ResuMatchAI
 
-PROJECT OVERVIEW
+## Streamline Resume Matching with AI
 
-ResuMatchAI is a Streamlit-based web application designed to help job seekers and recruiters optimize the resume-to-job-description matching process. By leveraging natural language processing (NLP) and large language models (LLMs), the tool provides a comprehensive analysis of a candidate's resume against a specific job description, offering insights, a match score, and AI-powered suggestions for improvement.
+**ResuMatchAI** is a Streamlit-based web application that helps job seekers and recruiters optimize resume-to-job-description (JD) matching. It uses NLP and LLMs to deliver match scores, identify skill gaps, and give AI-powered resume improvement suggestions.
 
-KEY FEATURES
+---
 
-Resume-to-JD Matching: Analyzes skills extracted from a resume and a job description to calculate a percentage match score.
+##  Key Features
 
-Skill Gap Analysis: Identifies skills listed in the job description that are missing from the candidate's resume.
+- **Resume-to-JD Matching**: Calculates a match score based on skill comparison.
+- **Skill Gap Analysis**: Detects missing skills in resumes.
+- **AI-Powered Suggestions**: Recommends resume changes using LLMs.
+- **Multi-Resume Support**: Compare multiple candidates.
+- **Skill Taxonomy**: Uses a customizable skill alias dictionary.
 
-AI-Powered Suggestions: Provides actionable, LLM-generated recommendations on how to add or rephrase experience to cover missing skills.
+---
 
-Multi-Resume Support: Recruiters can upload multiple resumes to compare candidates and identify common skills across all participants.
+##  Prerequisites
 
-Comprehensive Skill Taxonomy: Uses a robust, customizable dictionary of skill aliases to ensure accurate and consistent skill extraction.
+- Python 3.7 or newer
+- API Keys for OpenAI and/or Google Gemini
 
-PREREQUISITES
+---
 
-Before you begin, ensure you have Python 3.7 or newer installed.
-
-INSTALLATION
+##  Installation
 
 Clone the repository:
 
+```bash
 git clone <your-repository-url>
 
 cd <your-repository-name>
 
-Create and activate a virtual environment (recommended):
+Create and activate a virtual environment:
 
 Using venv:
 
 python -m venv venv
-
-source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
-
+# On macOS/Linux:
+source venv/bin/activate
+# On Windows:
+venv\Scripts\activate
 Using Conda:
 
 conda create -n resume-matcher python=3.9
 
 conda activate resume-matcher
 
-Install the required packages:
+Install required packages:
 
 pip install -r requirements.txt
-
-Download the necessary spaCy language model:
+Download the spaCy language model:
 
 python -m spacy download en_core_web_sm
+Set your API keys as environment variables:
 
-API Keys
+On macOS/Linux:
 
-This application requires API keys for the large language models. You will need to set them as environment variables:
+export OPENAI_API_KEY="your-openai-key"
+export GOOGLE_API_KEY="your-gemini-key"
+On Windows CMD:
 
-Google Gemini:
+Edit
+set OPENAI_API_KEY="your-openai-key"
+set GOOGLE_API_KEY="your-gemini-key"
 
-export GOOGLE_API_KEY="YOUR_GEMINI_API_KEY"
-
-OpenAI:
-
-export OPENAI_API_KEY="YOUR_OPENAI_API_KEY"
-
-USAGE
-
-To run the application, simply execute the following command from the project's root directory after activating your environment:
+Usage
+After activating the environment, run the following command:
 
 streamlit run app.py
+This will start a local development server and open the app in your browser.
 
-This will start a local web server, and the application will open automatically in your browser.
-
-FILE STRUCTURE
-
-app.py: The main Streamlit application file.
-
-data_extractor.py: Functions for extracting personal info and skills from resumes.
-
-job_parser.py: Logic for extracting skills from job descriptions.
-
-matcher.py: Contains the function to calculate the match score and identify skill gaps.
-
-skill_aliases.py: A dictionary of skill names and their common aliases for consistent matching.
-
-llm_utils.py: Utility functions for interacting with LLMs.
-
-resume_parser.py: Handles text extraction from PDF files.
-
-requirements.txt: Lists the project dependencies.
-
-LICENSE
-
-This project is licensed under the MIT License. See the LICENSE file for details.
+ File Structure
+├── app.py               # Main Streamlit application
+├── data_extractor.py    # Extracts personal info and skills from resumes
+├── job_parser.py        # Extracts skills from job descriptions
+├── matcher.py           # Match score logic and skill gap identification
+├── skill_aliases.py     # Dictionary for skill normalization
+├── llm_utils.py         # Utility functions for LLM integration
+├── resume_parser.py     # Parses resumes (PDF to text)
+├── requirements.txt     # Project dependencies
+📄 License
+This project is licensed under the MIT License.
+See the LICENSE file for more details.
