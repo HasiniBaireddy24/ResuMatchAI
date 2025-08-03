@@ -2,16 +2,40 @@ import streamlit as st
 import os
 import io
 import pandas as pd
-from skill_aliases import skill_aliases 
+# Import spacy.cli for programmatically downloading the model
+import spacy.cli
+from skill_aliases import skill_aliases # Assuming this file exists in your project
 import openai
 import google.generativeai as genai
 
 # For handling BytesIO objects from uploaded files
-from resume_parser import extract_text_from_pdf 
-from data_extractor import extract_email, extract_phone, extract_name, extract_skills, normalize_skill
-from job_parser import extract_skills_from_jd 
-from matcher import calculate_match_score 
+# Ensure these helper functions are in your project directory
+from resume_parser import extract_text_from_pdf # Assuming this file exists in your project
+# Corrected import: ensure normalize_skill is imported or the module is imported directly
+from data_extractor import extract_email, extract_phone, extract_name, extract_skills, normalize_skill # Assuming this file exists in your project
+from job_parser import extract_skills_from_jd # Assuming this file exists in your project
+from matcher import calculate_match_score # Assuming this file exists in your project
 
+# -------------------- SpaCy Model Download Function --------------------
+def download_spacy_model():
+    """
+    Checks if the 'en_core_web_sm' model is installed and downloads it if not.
+    This is the most reliable way to ensure the model is available on
+    Streamlit Cloud, as packages.txt can sometimes be inconsistent.
+    """
+    try:
+        spacy.load("en_core_web_sm")
+    except OSError:
+        st.info("Downloading spaCy model 'en_core_web_sm'... This may take a moment.")
+        try:
+            spacy.cli.download("en_core_web_sm")
+            st.success("SpaCy model downloaded successfully!")
+        except Exception as e:
+            st.error(f"Error downloading spaCy model: {e}")
+            st.warning("The app may not function correctly without the spaCy model. Please try again.")
+
+# Call the function at the start of the script before importing `job_parser`
+download_spacy_model()
 
 # 🔐 Set your API Keys
 # Prioritize environment variables for security
@@ -27,11 +51,32 @@ if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
 
 
-# -------------------- Function Definitions --------------------
+# -------------------- Cached Function Wrappers --------------------
+# We create new functions here to wrap the expensive operations from
+# other modules and apply caching. This avoids modifying the original files.
 
+@st.cache_data
+def cached_extract_text_from_pdf(file_path):
+    """Caches the result of text extraction from a PDF file path."""
+    return extract_text_from_pdf(file_path)
+
+@st.cache_data
+def cached_extract_skills_from_jd(job_description):
+    """Caches the result of skill extraction from a job description string."""
+    return extract_skills_from_jd(job_description)
+
+@st.cache_data
+def cached_calculate_match_score(resume_skills, jd_skills):
+    """Caches the result of the match score calculation."""
+    return calculate_match_score(resume_skills, jd_skills)
+
+# -------------------- Function Definitions with Caching --------------------
+
+@st.cache_data
 def get_llm_suggestions(resume_text, job_description, llm_choice, openai_api_key_input=None, google_api_key_input=None):
     """
     Generates resume improvement suggestions using the chosen LLM.
+    This function is now decorated to cache its result for a given set of inputs.
     """
     try:
         system_prompt = "You are a professional resume coach who helps candidates improve their resumes based on job descriptions."
@@ -70,7 +115,7 @@ def get_llm_suggestions(resume_text, job_description, llm_choice, openai_api_key
                 system_prompt + "\n\n" + user_prompt,
                 generation_config=genai.types.GenerationConfig(
                     temperature=0.7,
-                    max_output_tokens=token_limit 
+                    max_output_tokens=token_limit # Set to the unified token limit
                 )
             )
             return response.text.strip()
@@ -92,7 +137,7 @@ st.set_page_config(
     }
 )
 
-#CSS
+# Custom CSS
 st.markdown("""
     <style>
         /* General page background */
@@ -203,19 +248,19 @@ if 'user_role' not in st.session_state:
     st.session_state.user_role = None
 if 'analyze_button_clicked' not in st.session_state:
     st.session_state.analyze_button_clicked = False
-if 'job_description_text' not in st.session_state: #  for JD persistence
+if 'job_description_text' not in st.session_state: # New: for JD persistence
     st.session_state.job_description_text = ""
 # Initialize session state for LLM choice for persistence
 if 'llm_model_choice' not in st.session_state:
     st.session_state.llm_model_choice = "OpenAI (GPT-4o-mini)" # Default choice
 
-# Initialize session state for API keys for persistence
+# NEW: Initialize session state for API keys for persistence
 if 'openai_api_key_input_val' not in st.session_state:
     st.session_state.openai_api_key_input_val = ""
 if 'google_api_key_input_val' not in st.session_state:
     st.session_state.google_api_key_input_val = ""
 
-# Initialize session state for uploaded resume persistence
+# NEW: Initialize session state for uploaded resume persistence
 if 'uploaded_resume_single_file' not in st.session_state:
     st.session_state.uploaded_resume_single_file = None
 if 'uploaded_resumes_multiple_files' not in st.session_state:
@@ -326,8 +371,9 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
     if st.session_state.user_role == "Job Seeker / Student":
         st.markdown("---")
         
-        # Wrap the LLM configuration in an expander
+        # NEW: Wrap the LLM configuration in an expander
         with st.expander("🔧 AI Suggestions Configuration (Optional)", expanded=False):
+            # LLM Model Selection (FIXED FOR PERSISTENCE)
             llm_choice_options = ("OpenAI (GPT-4o-mini)", "Google (Gemini-Pro)")
             try:
                 # Ensure the index is valid for the current options
@@ -360,12 +406,13 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                     st.success("OpenAI API Key is set (via environment variable).")
             elif llm_choice == "Google (Gemini-Pro)":
                 if not GOOGLE_API_KEY:
+                    # Use session state for value and on_change callback
                     google_api_key_input = st.text_input(
                         "Enter your Google API Key (for Gemini suggestions)",
                         type="password",
                         key="google_api_key_input",
-                        value=st.session_state.google_api_key_input_val, 
-                        on_change=lambda: st.session_state.update(google_api_key_input_val=st.session_state.google_api_key_input)
+                        value=st.session_state.google_api_key_input_val, # Set value from session state
+                        on_change=lambda: st.session_state.update(google_api_key_input_val=st.session_state.google_api_key_input) # Update session state on change
                     )
                     if not google_api_key_input:
                         st.info("You can get a Google API key from [makersuite.google.com/build/api-key](https://makersuite.google.com/build/api-key). This key is not stored.")
@@ -384,6 +431,10 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
         
         resumes_data = [] # Initialize list to store data for all resumes
 
+        # Use the cached function for JD skills extraction once
+        jd_skill_set_raw = cached_extract_skills_from_jd(job_description)
+        jd_skill_set_normalized = {normalize_skill(s) for s in jd_skill_set_raw}
+        
         # Add an overall spinner for the entire batch processing
         with st.spinner("Processing all resumes... This may take a moment."):
             # Loop through each uploaded resume
@@ -402,21 +453,26 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                             with open(temp_resume_path, "wb") as f:
                                 f.write(uploaded_resume.read())
 
-                            resume_text = extract_text_from_pdf(temp_resume_path)
+                            # Use the cached function for text extraction
+                            resume_text = cached_extract_text_from_pdf(temp_resume_path)
+                            
                             name = extract_name(resume_text)
                             email = extract_email(resume_text)
                             phone = extract_phone(resume_text)
 
-                            skill_set = extract_skills_from_jd(job_description)
-                            resume_skills = extract_skills(resume_text, skill_set)
-                            match_score, matched_skills, missing_skills = calculate_match_score(resume_skills, skill_set)
+                            # Extract and normalize resume skills (not cached here as it depends on resume text)
+                            resume_skills_raw = extract_skills(resume_text, skill_aliases)
+                            resume_skills_normalized = {normalize_skill(s) for s in resume_skills_raw}
+
+                            # Use the cached function for score calculation
+                            match_score, matched_skills, missing_skills = cached_calculate_match_score(resume_skills_normalized, jd_skill_set_normalized)
 
                         # Store data for overall comparison later (NEWLY ADDED)
                         resumes_data.append({
                             "name": name if name else uploaded_resume.name.replace(".pdf", ""),
                             "email": email,
                             "phone": phone,
-                            "extracted_skills": resume_skills, # Use raw extracted skills
+                            "extracted_skills": resume_skills_normalized, # Use raw extracted skills
                             "match_score_value": match_score, # Store raw score for sorting/calculations
                             "match_score_display": f"{match_score:.2f}%",
                             "matched_jd_skills": matched_skills, 
@@ -425,14 +481,14 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                             
                         st.success(f"✅ Analysis Complete for {uploaded_resume.name}!")
 
-                        # --- Resume Summary Section ---
+                        # --- Resume Summary Section (Now 1) ---
                         st.markdown("---")
                         st.header("1️⃣ Resume Summary")
                         st.write(f"**Candidate Name:** {name if name else 'Not Found 🤷'}")
                         st.write(f"**Email Address:** {email if email else 'Not Found 📧'}")
                         st.write(f"**Phone Number:** {phone if phone else 'Not Found 📞'}")
 
-                        # --- Match Score & Skills Section ---
+                        # --- Match Score & Skills Section (Now 2) ---
                         st.markdown("---")
                         st.header("2️⃣ Resume vs Job Match")
 
@@ -461,7 +517,7 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                             else:
                                 st.success("Great! Your resume appears to cover all key skills mentioned in the job description.")
 
-                        # --- Smart Suggestions Section ---
+                        # --- Smart Suggestions Section (Now 3) ---
                         # This entire section should ONLY be shown if the user is a Job Seeker / Student
                         if st.session_state.user_role == "Job Seeker / Student":
                             st.markdown("---")
@@ -479,7 +535,7 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                                 if can_get_llm_suggestions:
                                     st.subheader(f"🤖 {st.session_state.llm_model_choice}-Powered Suggestions")
                                     with st.spinner("💡 Asking your AI resume coach..."):
-                                        # Pass the session state values to the function
+                                        # Use the cached function for LLM calls
                                         llm_feedback = get_llm_suggestions(
                                             resume_text, 
                                             job_description, 
@@ -587,25 +643,25 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                                         st.markdown("</div>", unsafe_allow_html=True)
                                     else:
                                         st.success("✅ Your resume appears to cover all key skills from the job description! Well done!")
-                            else: 
+                            else: # No missing skills, so perfect match
                                 st.success("🎉 Excellent! Your resume fully matches all job requirements. You're good to go!")
-                    
+                        # Removed the else block here, so the section simply doesn't appear for Recruiters.
 
                     except Exception as e:
                         st.error(f"An error occurred during analysis of {uploaded_resume.name}: {e}. Please try again or check the format of this resume.")
                         st.warning("Ensure your PDF resume is text-searchable (not just an image).")
                     finally:
-                        
+                        # Clean up the temporary PDF file for THIS resume
                         if os.path.exists(temp_resume_path):
                             os.remove(temp_resume_path)
 
-        # --- Recruiter Dashboard: Comparative Analysis  ---
+        # --- Recruiter Dashboard: Comparative Analysis (Corrected Indentation) ---
         if st.session_state.user_role == "Recruiter / Hiring Manager" and resumes_data:
             st.markdown("---")
-            st.header("3️⃣ Recruiter Dashboard: Comparative Analysis")
+            st.header("3️⃣ Recruiter Dashboard: Comparative Analysis") # Numbered 3 for recruiters now
             st.info("Below is a comparative overview of the uploaded resumes against the Job Description.")
 
-        
+            # Sort resumes by match score
             sorted_resumes_data = sorted(resumes_data, key=lambda x: x['match_score_value'], reverse=True)
 
             st.subheader("Comparative Overview Table")
@@ -621,23 +677,18 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                 })
             
             if display_data:
-                df = pd.DataFrame(display_data, index=range(1, len(display_data) + 1)) 
-                st.dataframe(df, use_container_width=True)
+                df = pd.DataFrame(display_data, use_container_width=True)
             else:
                 st.info("No resume data to display in the comparison table.")
 
+            # Cross-Candidate Insights (e.g., common skills)
             st.subheader("Cross-Candidate Insights")
-            if len(resumes_data) > 0:
-                jd_skill_set_normalized = set(normalize_skill(s) for s in skill_set)
-                
-                
-                # Initialize with skills from the first resume
-                common_normalized_skills_across_resumes = set(normalize_skill(s) for s in resumes_data[0]['extracted_skills'])
+            if len(resumes_data) > 0: # Ensure there's at least one resume
                 
                 # Intersect with skills from subsequent resumes
-                for i in range(1, len(resumes_data)):
-                    current_resume_normalized_skills = set(normalize_skill(s) for s in resumes_data[i]['extracted_skills'])
-                    common_normalized_skills_across_resumes = common_normalized_skills_across_resumes.intersection(current_resume_normalized_skills)
+                common_normalized_skills_across_resumes = set.intersection(
+                    *[resume['extracted_skills'] for resume in resumes_data]
+                )
 
                 # Now, intersect this set with the job description skills
                 common_jd_skills_across_all = jd_skill_set_normalized.intersection(common_normalized_skills_across_resumes)
@@ -648,18 +699,9 @@ else: # --- Stage 2: Main Application Features (after role selection) ---
                 else:
                     st.info("No common job description skills found across all uploaded resumes.")
                 
-            else:
+            else: # This block handles the case where no resumes were uploaded for the insight section.
                 st.info("Upload more than one resume to see cross-candidate insights.")
 
     # Instructions if inputs are missing initially or after an error in stage 2
     # This block now handles cases where analyze button was clicked but inputs are missing
-    elif st.session_state.analyze_button_clicked: 
-        if not uploaded_resumes_for_processing:
-            st.error("Please upload your resume(s). ⬆️")
-        if not job_description: 
-            st.error("Please paste the job description. 📋")
-    else: 
-        if st.session_state.user_role == "Job Seeker / Student":
-            st.info("📌 To begin, please upload your resume (PDF) and paste a job description. Then click 'Analyze Resume'.")
-        else: 
-            st.info("📌 To begin, please upload one or more resumes (PDFs) and paste a job description. Then click 'Analyze Resumes'.")
+    elif st.session_s
