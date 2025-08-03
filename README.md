@@ -32,6 +32,7 @@ source venv/bin/activate  #On Windows, use 'venv\Scripts\activate'
 
 Using Conda:
 conda create -n resume-matcher python=3.9
+
 conda activate resume-matcher
 
 3. Install the required packages:
