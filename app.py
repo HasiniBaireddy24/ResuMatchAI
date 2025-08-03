@@ -5,8 +5,6 @@ import pandas as pd
 from skill_aliases import skill_aliases 
 import openai
 import google.generativeai as genai
-
-
 from resume_parser import extract_text_from_pdf 
 from data_extractor import extract_email, extract_phone, extract_name, extract_skills, normalize_skill
 from job_parser import extract_skills_from_jd 
